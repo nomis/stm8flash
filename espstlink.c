@@ -92,7 +92,13 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
 static void espstlink_wait_until_transfer_completes(
     programmer_t *pgm, const stm8_device_t *device) {
   // wait until the EOP bit is set.
-  TRY(8, espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x4);
+  uint8_t res;
+  TRY(8, (res = espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x5));
+  if (res == 1) {
+    ERROR("Protected chip. Perform a factory reset by doing:\n"
+    "    echo \"00 00 ff 00 ff 00 ff 00 ff 00 ff\" | xxd -r -p > factory_defaults.bin\n"
+    "    stm8flash -c espstlink -p ... -s opt -w factory_defaults.bin");
+  }
 }
 
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,

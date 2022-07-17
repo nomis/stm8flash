@@ -78,8 +78,8 @@ espstlink_t *espstlink_open(const char *device) {
   }
 
   /* Set Baud Rate */
-  cfsetospeed(&tty, (speed_t)B921600);
-  cfsetispeed(&tty, (speed_t)B921600);
+  cfsetospeed(&tty, (speed_t)B115200);
+  cfsetispeed(&tty, (speed_t)B115200);
 
   /* Setting other Port Stuff */
   tty.c_cc[VMIN] = 0;             // read does block (until timeout)

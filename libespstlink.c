@@ -187,6 +187,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
   }
 
   int len = read(fd, buf, 1);
+#ifdef DEBUG
+for (int i = 0; i < len; i++) printf("RX: %02X\n", buf[i]);
+#endif
   if (len < 1) {
     set_error(ESPSTLINK_ERROR_READ,
               "Didn't get a response from the device: %s\n", strerror(errno));
@@ -196,9 +199,15 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
     set_error(ESPSTLINK_ERROR_DATA, "Unexpected data: %02x\n", buf[0]);
     error.data[0] = buf[0];
     error.data_len = 1 + read(fd, &error.data[1], sizeof(error.data) - 1);
+#ifdef DEBUG
+for (int i = 1; i < error.data_len; i++) printf("RX: %02X\n", error.data[i]);
+#endif
     return 0;
   }
   len = read(fd, buf + 1, 1);
+#ifdef DEBUG
+for (int i = 0; i < len; i++) printf("RX: %02X\n", buf[1 + i]);
+#endif
   if (len < 1) {
     set_error(ESPSTLINK_ERROR_DATA,
               "Device didn't finish command 0x%02x (%s): %s\n", buf[0],
@@ -210,6 +219,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
       size_t total = 0;
       while (total < size) {
         len = read(fd, resp_buf + total, size);
+#ifdef DEBUG
+for (int i = 0; i < len; i++) printf("RX: %02X\n", resp_buf[total + i]);
+#endif
         if (len < 1) {
           set_error(
               ESPSTLINK_ERROR_DATA,
@@ -225,6 +237,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
   }
   if (buf[1] == 0xFF) {
     len = read(fd, buf + 2, 2);
+#ifdef DEBUG
+for (int i = 0; i < len; i++) printf("RX: %02X\n", buf[2 + i]);
+#endif
     if (len < 2) {
       set_error(ESPSTLINK_ERROR_DATA,
                 "Device didn't finish sending error code for command 0x%02x "
@@ -244,6 +259,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
     error.data[0] = buf[0];
     error.data[1] = buf[1];
     error.data_len = 2 + read(fd, &error.data[2], sizeof(error.data) - 2);
+#ifdef DEBUG
+for (int i = 2; i < error.data_len; i++) printf("RX: %02X\n", error.data[i]);
+#endif
   }
   return 0;
 }
@@ -254,6 +272,10 @@ bool espstlink_fetch_version(espstlink_t *pgm) {
 
   uint8_t cmd[] = {0xFF};
   uint8_t resp_buf[2];
+
+#ifdef DEBUG
+for (int i = 0; i < sizeof(cmd); i++) printf("TX: %02X (%s)\n", cmd[i], __func__);
+#endif
 
   write(pgm->fd, cmd, 1);
   if (!error_check(pgm->fd, cmd[0], resp_buf, 2)) return 0;
@@ -273,6 +295,10 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
   uint8_t cmd[] = {0xFE};
   uint8_t resp_buf[2];
 
+#ifdef DEBUG
+for (int i = 0; i < sizeof(cmd); i++) printf("TX: %02X (%s)\n", cmd[i], __func__);
+#endif
+
   write(pgm->fd, cmd, 1);
   if (!error_check(pgm->fd, cmd[0], resp_buf, 2)) return 0;
 
@@ -287,6 +313,10 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
 
 bool espstlink_reset(const espstlink_t *pgm, bool input, bool enable_reset) {
   uint8_t cmd[] = {0xFD, input ? 0xFF : enable_reset};
+
+#ifdef DEBUG
+for (int i = 0; i < sizeof(cmd); i++) printf("TX: %02X (%s)\n", cmd[i], __func__);
+#endif
 
   write(pgm->fd, cmd, 2);
   return error_check(pgm->fd, cmd[0], NULL, 0);
@@ -303,6 +333,12 @@ bool espstlink_swim_read(const espstlink_t *pgm, uint8_t *buffer,
                          unsigned int addr, size_t size) {
   uint8_t cmd[] = {1, size, addr >> 16, addr >> 8, addr};
   uint8_t resp_buf[512];
+
+#ifdef DEBUG
+printf("\n");
+for (int i = 0; i < sizeof(cmd); i++) printf("TX: %02X (%s)\n", cmd[i], __func__);
+#endif
+
   write(pgm->fd, cmd, 5);
   if (!error_check(pgm->fd, cmd[0], resp_buf, cmd[1] + 4)) return 0;
   // there's 4 non data bytes in the response: len, 3*address
@@ -313,6 +349,13 @@ bool espstlink_swim_read(const espstlink_t *pgm, uint8_t *buffer,
 bool espstlink_swim_write(const espstlink_t *pgm, const uint8_t *buffer,
                           unsigned int addr, size_t size) {
   uint8_t cmd[] = {2, size, addr >> 16, addr >> 8, addr};
+
+#ifdef DEBUG
+printf("\n");
+for (int i = 0; i < sizeof(cmd); i++) printf("TX: %02X (%s)\n", cmd[i], __func__);
+for (int i = 0; i < size; i++) printf("TX: %02X (%s)\n", buffer[i], __func__);
+#endif
+
   write(pgm->fd, cmd, 5);
   write(pgm->fd, buffer, cmd[1]);
 

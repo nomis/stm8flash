@@ -21,6 +21,7 @@ ifneq (,$(strip $(LIBUSB_QUIET)))
 endif
 
 BASE_CFLAGS += --std=gnu99 --pedantic -Wall
+#BASE_CFLAGS += -DDEBUG
 
 ifeq ($(PLATFORM),Linux)
 	LIBS = `pkg-config --libs libusb-1.0`
